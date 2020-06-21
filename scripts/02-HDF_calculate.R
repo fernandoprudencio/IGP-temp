@@ -32,6 +32,7 @@ library(sf)
 library(spatialEco)
 library(reshape2)
 library(stringr)
+library(grid)
 
 #' CHANGE TO ENGLISH LANGUAGE
 Sys.setlocale(category = "LC_ALL", locale = "english")
@@ -46,7 +47,7 @@ k.date.year <- seq(as.Date("1990-01-01"), as.Date("2013-12-31"), by = "year")
 k.date.plt <- seq(as.Date("2020-03-01"), as.Date("2020-12-31"), by = "day")
 k.years <- c(1990:2013)
 k.dry.yr <- c(2005, 2010)
-k.regions <- c(6)
+k.regions <- c(8)
 k.threshold <- 0.9
 
 #' READ VECTORIAL DATA
@@ -159,57 +160,70 @@ df.hdf.ac.dry <- df.hdf.ac %>%
   as_tibble()
 
 #' PLOT TEMPORAL EVOLUTION ACCUMULATED HDF
-plt.hdf.ssnl <- ggplot(df.hdf.ac.dry, aes(date, yr.2005)) +
-  # annotate("rect",
-  #         xmin = as.Date("2020-04-20"),
-  #         xmax = as.Date("2020-10-10"),
-  #         ymin = 0, ymax = 80, alpha = 0.1, fill = "red", color = "red"
-  # ) +
+plt.hdf.ssnl <- ggplot(df.hdf.ac.dry, aes(date, hdf.mean)) +
   geom_ribbon(
     aes(ymin = hdf.min, ymax = hdf.max),
-    alpha = 0.5, color = "black"
+    alpha = .2, color = "black", fill = "black"
   ) +
-  geom_line(colour = "blue", size = 1) +
-  labs(
-    y = "Hot Day Frequency",
-    title = "Temporal evolution of Hot Day Frequency",
-    subtitle = "from 1990 to 2013"
+  geom_line(
+    colour = "white",
+    size = 1,
+    linetype = "dashed"
   ) +
-  theme_bw() +
-  theme(
-    plot.title = element_text(size = 18, hjust = 0),
-    plot.subtitle = element_text(size = 15, hjust = 0),
-    axis.text.x = element_text(size = 12, angle = 0, hjust = -0.3),
-    axis.text.y = element_text(size = 12),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 15),
-    panel.grid.minor = element_blank(),
-    panel.grid = element_line(
-      size = 0.3, color = "gray", linetype = "dashed"
-    ),
-    panel.border = element_rect(size = 1)
+  geom_line(aes(date, yr.2005),
+    colour = "blue", size = 1
   ) +
+  geom_line(aes(date, yr.2010), colour = "black", size = 1) +
   scale_x_date(date_labels = "%b", breaks = "1 month", expand = c(0, 0)) +
   scale_y_continuous(
     breaks = seq(0, 130, 20),
     limits = c(0, 130),
     expand = c(0, 0)
   ) +
-  geom_line(aes(date, yr.2010), colour = "black", size = 1) +
-  geom_line(aes(date, hdf.mean),
-    colour = "white",
-    size = 1,
-    linetype = "dashed"
+  theme_bw() +
+  annotation_ticks(
+    sides = "l", ticklength = 1 * unit(0.1, "cm"), color = "black"
+  ) +
+  coord_cartesian(clip = "off") +
+  theme(
+    plot.margin = margin(.5, .5, .5, .5, "cm"),
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 11, colour = "black", face = "bold", angle = 45,
+      hjust = -.3, vjust = .1
+    ),
+    axis.text.y = element_text(size = 12, face = "bold", color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.ticks.length.x = unit(.12, "cm"),
+    axis.ticks.length.y = unit(.2, "cm"),
+    axis.line.y = element_line(size = .8, color = "black"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = .5)
   )
 
+title.axis <- textGrob(
+  label = "hdf", check.overlap = F,
+  x = unit(0, "lines"),
+  y = unit(-.1, "lines"),
+  hjust = -.6,
+  gp = gpar(
+    fontsize = 18,
+    fontface = "bold",
+    col = "black"
+  )
+)
+
+p <- gridExtra::arrangeGrob(plt.hdf.ssnl, top = title.axis)
+grid.draw(p)
+
 ggsave(
-  plot = plt.hdf.ssnl,
+  plot = p,
   sprintf(
     "exports/hdf_region_n%s_dec%s_1990-2013.png",
     k.regions,
     k.threshold
   ),
-  width = 14, height = 15, units = "cm", dpi = 1000
+  width = 10, height = 12, units = "cm", dpi = 1000
 )
 
 #' PLOT ACCUMULATED HDF BY YEAR
@@ -223,6 +237,8 @@ hdf.yr <- tibble(
   )
 
 plt.hdf.yr <- ggplot(hdf.yr, aes(date, hdf)) +
+  geom_line(colour = "gray", size = 1.4) +
+  geom_point(colour = "gray", size = 2.5, shape = 15) +
   geom_hline(
     yintercept = hdf.yr$ubic.dry.05[!is.na(hdf.yr$ubic.dry.05)],
     linetype = "dashed", alpha = 1,
@@ -233,31 +249,52 @@ plt.hdf.yr <- ggplot(hdf.yr, aes(date, hdf)) +
     linetype = "dashed", alpha = 1,
     color = "black", size = 1
   ) +
-  geom_line(colour = "gray", size = 1.4) +
-  geom_point(colour = "gray", size = 2.5, shape = 15) +
   geom_point(aes(date, ubic.dry.05), color = "blue", size = 4.5, shape = 15) +
   geom_point(aes(date, ubic.dry.10), color = "black", size = 4.5, shape = 15) +
-  labs(y = "Hot Day Frequency") +
-  theme_bw() +
-  theme(
-    plot.title = element_text(size = 18, hjust = 0),
-    plot.subtitle = element_text(size = 15, hjust = 0),
-    axis.text.x = element_text(size = 15, angle = 0),
-    axis.text.y = element_text(size = 15),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 17),
-    panel.grid = element_line(size = 0.3, color = "gray", linetype = "dashed"),
-    panel.border = element_rect(size = 1)
+  scale_x_date(
+    breaks = seq(as.Date("1990-01-01"), as.Date("2013-01-01"), by = "5 year"),
+    date_labels = "%Y"
   ) +
-  scale_x_date(date_labels = "%Y", breaks = "5 year", expand = c(0, 0)) +
   scale_y_continuous(
     breaks = seq(0, 130, 20),
     limits = c(0, 130),
     expand = c(0, 0)
+  ) +
+  theme_bw() +
+  annotation_ticks(
+    sides = "l", ticklength = 1 * unit(0.1, "cm"), color = "black"
+  ) +
+  coord_cartesian(clip = "off") +
+  theme(
+    plot.margin = margin(.5, .5, .5, .5, "cm"),
+    axis.title = element_blank(),
+    axis.text.x = element_text(size = 15, colour = "black", face = "bold"),
+    axis.text.y = element_text(size = 15, color = "black", face = "bold"),
+    axis.ticks = element_line(color = "black"),
+    axis.ticks.length.x = unit(.12, "cm"),
+    axis.ticks.length.y = unit(.2, "cm"),
+    axis.line.y = element_line(size = .8, color = "black"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = .5)
   )
 
+title.axis <- textGrob(
+  label = "hdf", check.overlap = F,
+  x = unit(0, "lines"),
+  y = unit(-.1, "lines"),
+  hjust = -.6,
+  gp = gpar(
+    fontsize = 20,
+    fontface = "bold",
+    col = "black"
+  )
+)
+
+p <- gridExtra::arrangeGrob(plt.hdf.yr, top = title.axis)
+grid.draw(p)
+
 ggsave(
-  plot = plt.hdf.yr,
+  plot = p,
   sprintf(
     "exports/hdf_yr_region_n%s_dec%s_1990-2013.png",
     k.regions,
@@ -293,12 +330,12 @@ df.hdf.month <- df.hdf.ac %>%
 
 boxplt.hdf <- ggplot(df.hdf.month, mapping = aes(month, hdf)) +
   geom_boxplot(
-    alpha = 1, outlier.size = NULL, width = 0.5,
-    fatten = 1.5, lwd = .8, color = "gray"
+    alpha = .1, width = .5,# outlier.size = NULL,
+    fatten = 2, lwd = .6, color = "red", fill = "red"
   ) +
   geom_jitter(
     shape = 16,
-    size = 0.8, color = "gray",
+    size = .1, color = "gray",
     position = position_jitter(0.2)
   ) +
   stat_summary(
@@ -316,22 +353,12 @@ boxplt.hdf <- ggplot(df.hdf.month, mapping = aes(month, hdf)) +
   geom_text(
     aes(label = outlier2),
     size = 3, na.rm = TRUE, hjust = 0.5,
-    vjust = -.5, check_overlap = T, color = "gray"
+    vjust = -.5, check_overlap = T, color = "red"
   ) +
   geom_point(
     aes(month, ubic.otlr),
-    color = "gray", size = 1.5
+    color = "red", size = 1.5
   ) +
-  #  geom_text(
-  #    aes(label = txt.dry.05),
-  #    size = 3, na.rm = TRUE, hjust = 0.5,
-  #    vjust = -.5, check_overlap = F, color = "blue"
-  #  ) +
-  #  geom_text(
-  #    aes(label = txt.dry.10),
-  #    size = 3, na.rm = TRUE, hjust = 0.5,
-  #    vjust = -.5, check_overlap = F, color = "black"
-  #  ) +
   geom_point(
     aes(month, ubic.dry.05),
     color = "blue", size = 1.5
@@ -340,34 +367,50 @@ boxplt.hdf <- ggplot(df.hdf.month, mapping = aes(month, hdf)) +
     aes(month, ubic.dry.10),
     color = "black", size = 1.5
   ) +
-  labs(
-    title = "Monthly HDF distribution", subtitle = "from 1990 to 2013",
-    y = "Hot Day Frequency"
-  ) +
   theme_bw() +
+  annotation_ticks(
+    sides = "l", ticklength = 1 * unit(0.1, "cm"), color = "red"
+  ) +
+  coord_cartesian(clip = "off") +
   theme(
-    plot.title = element_text(size = 15),
-    plot.subtitle = element_text(size = 15),
-    axis.text.x = element_text(size = 13, colour = "black"),
-    axis.text.y = element_text(size = 13, colour = "black"),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 20),
-    axis.ticks.length = unit(.15, "cm"),
-    panel.grid.minor = element_blank(),
-    panel.grid = element_line(
-      size = 0.3, color = "gray", linetype = "dashed"
+    plot.margin = margin(.5, .5, .5, .5, "cm"),
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 10, colour = "black", face = "bold", angle = 45, vjust = .7
     ),
-    panel.border = element_rect(size = 1)
+    axis.text.y = element_text(size = 11, face = "bold", color = "red"),
+    axis.ticks.x = element_line(color = "black"),
+    axis.ticks.y = element_line(color = "red"),
+    axis.ticks.length.x = unit(.12, "cm"),
+    axis.ticks.length.y = unit(.2, "cm"),
+    axis.line.y = element_line(size = .8, color = "red"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA, size = .5)
   )
 
+title.axis <- textGrob(
+  label = "hdf", check.overlap = F,
+  x = unit(0, "lines"),
+  y = unit(.2, "lines"),
+  hjust = -.3,
+  gp = gpar(
+    fontsize = 20,
+    fontface = "bold",
+    col = "red"
+  )
+)
+
+p <- gridExtra::arrangeGrob(boxplt.hdf, top = title.axis)
+grid.draw(p)
+
 ggsave(
-  plot = boxplt.hdf,
+  plot = p,
   sprintf(
     "exports/hdf_month_region_n%s_dec0.1_1990-2013.png",
     k.regions,
     k.threshold
   ),
-  width = 12, height = 16, units = "cm", dpi = 1000
+  width = 10, height = 15, units = "cm", dpi = 1000
 )
 
 #' PLOT SEASONAL BEHAVIOR OF RAINFALL
@@ -379,11 +422,11 @@ df.temp.rgn.data <- tibble(
 ) %>%
   mutate(month = str_sub(date, 6, 7)) %>%
   group_by(month) %>%
-  mutate(decil.1 = quantile(temp.mean, .1)) %>%
+  mutate(decil.1 = quantile(temp.mean, .1) %>% round(1)) %>%
   ungroup() %>%
   mutate(cdf = ifelse(temp.mean <= decil.1, 1, 0)) %>%
   group_by(month) %>%
-  mutate(decil.9 = quantile(temp.mean, .9)) %>%
+  mutate(decil.9 = quantile(temp.mean, .9) %>% round(1)) %>%
   ungroup() %>%
   mutate(hdf = ifelse(temp.mean >= decil.9, 1, 0)) %>%
   left_join(month.lbl, by = "month")
@@ -401,24 +444,13 @@ avr.umbral.cdf <- unique(df.temp.rgn.data$decil.1) %>% mean()
 
 boxplt.hdf <- ggplot(df.temp.rgn.data, mapping = aes(month, temp.mean)) +
   geom_boxplot(
-    alpha = 1, outlier.size = .5, width = 0.5,
-    fatten = 1.5, lwd = .5, color = "gray", outlier.color = "gray"
+    outlier.size = 1, width = .5,
+    fatten = 2, lwd = .6, color = "gray", outlier.color = "gray"
   ) +
-  #  geom_jitter(
-  #    shape = 16,
-  #    size = 0.2, color = "gray",
-  #    position = position_jitter(0.1)
-  #  ) +
   stat_summary(
     fun.y = "mean",
     geom = "point",
     shape = 3, size = 4, colour = "black"
-  ) +
-  scale_x_discrete(label = month.lbl$lbl) +
-  scale_y_continuous(
-    breaks = seq(6, 26, 2),
-    limits = c(6, 26),
-    expand = c(0, 0)
   ) +
   geom_text(
     aes(x = month, y = decil.1, label = round(decil.1, 2)),
@@ -438,29 +470,51 @@ boxplt.hdf <- ggplot(df.temp.rgn.data, mapping = aes(month, temp.mean)) +
     aes(month, decil.9),
     color = "red", size = 2.5, shape = 24, fill = "red"
   ) +
-  labs(
-    title = "Daily temperature distribution", subtitle = "from 1990 to 2013",
-    y = "temperature [°C]"
+  scale_x_discrete(label = month.lbl$lbl) +
+  scale_y_continuous(
+    breaks = seq(6, 26, 2),
+    limits = c(6, 26),
+    expand = c(0, 0)
   ) +
   theme_bw() +
+  annotation_ticks(
+    sides = "l",
+    ticklength = 1 * unit(.1, "cm"),
+    color = "black"
+  ) +
+  coord_cartesian(clip = "off") +
   theme(
-    plot.title = element_text(size = 15),
-    plot.subtitle = element_text(size = 15),
-    axis.text.x = element_text(size = 10, colour = "black"),
-    axis.text.y = element_text(size = 10, colour = "black"),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 20),
-    axis.ticks.length = unit(.15, "cm"),
-    # panel.grid.minor = element_blank(),
-    # panel.grid = element_line(
-    #  size = 0.3, color = "gray", linetype = "dashed"
-    # ),
+    plot.margin = margin(.5, .5, .5, .5, "cm"),
+    axis.title = element_blank(),
+    axis.text.x = element_text(
+      size = 11, colour = "black", face = "bold", angle = 45, vjust = .7
+    ),
+    axis.text.y = element_text(size = 12, colour = "black", vjust = .7),
+    axis.ticks = element_line(color = "black"),
+    axis.ticks.length.x = unit(.12, "cm"),
+    axis.ticks.length.y = unit(.2, "cm"),
+    axis.line.y = element_line(size = .8, color = "black"),
     panel.grid = element_blank(),
-    panel.border = element_rect(size = 1)
+    panel.border = element_rect(colour = "black", fill = NA, size = .5)
   )
 
+title.axis <- textGrob(
+  label = "t [°C]", check.overlap = F,
+  x = unit(0, "lines"),
+  y = unit(.3, "lines"),
+  hjust = -.1,
+  gp = gpar(
+    fontsize = 18,
+    fontface = "bold",
+    col = "black"
+  )
+)
+
+p <- gridExtra::arrangeGrob(boxplt.hdf, top = title.axis)
+grid.draw(p)
+
 ggsave(
-  plot = boxplt.hdf,
+  plot = p,
   sprintf("exports/temp_month_region_n%s_1990-2013.png", k.regions),
-  width = 12, height = 16, units = "cm", dpi = 1000
+  width = 12, height = 15, units = "cm", dpi = 1000
 )
