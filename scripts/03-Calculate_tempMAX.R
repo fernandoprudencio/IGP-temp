@@ -1,8 +1,8 @@
 #' @title
-#' Monthly average data of ERA5
+#' Monthly maximum data of PISCO
 #'
 #' @description
-#' This script obtains monthly average data of ERA5
+#' This script obtains monthly maximum data of PISCO
 #'
 #' @author Fernando Prudencio
 #'
@@ -27,21 +27,18 @@ library(Hmisc)
 library(ncdf4)
 
 #' CONSTANTS
-k.years <- 1981:2020
+k.years <- 1981:2016
 
-#' READ LIST OF DAILY MAXIMUM DATA (ERA5)
-lst.temp <- list.files(
-  "data/raster/era5/daily/",
-  pattern = "*.tif", full.names = T
-)
+#' READ DAILY MAXIMUM DATA (PISCO)
+grd.temp <- brick("data/raster/pisco/daily/PISCO-TxD-v1.1.nc")
 
 #' BUILD A DATE DATAFRAME
 date <- tibble(
-  date = seq(as.Date("1981-01-01"), as.Date("2020-04-30"), by = "1 day")
+  date = seq(as.Date("1981-01-01"), as.Date("2016-12-31"), by = "1 day")
 ) %>%
   mutate(id = 1:length(date))
 
-#' OBTAIN MONTHLY AVERAGE DATA OF ERA5
+#' OBTAIN MONTHLY MAXIMUM DATA OF PISCO
 for (i in k.years) { # loop by year
   for (j in sprintf("%.02d", 1:12)) { # loop by month
     n <- date %>%
@@ -49,10 +46,10 @@ for (i in k.years) { # loop by year
         str_sub(date, 1, 4) == i &
           str_sub(date, 6, 7) == j
       )
-    era <- stack(lst.temp[n$id]) %>% mean(na.rm = T)
+    era <- grd.temp[[n$id]] %>% max(na.rm = T)
     writeRaster(
       era,
-      sprintf("data/raster/era5/monthly/mean/era5_tempMEAN_%s-%s.tif", i, j)
+      sprintf("data/raster/pisco/monthly/max/pisco_tempMAX_%s-%s.tif", i, j)
     )
   }
 }
