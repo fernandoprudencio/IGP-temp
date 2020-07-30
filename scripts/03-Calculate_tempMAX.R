@@ -1,8 +1,8 @@
 #' @title
-#' Monthly maximum data of ERA5
+#' Monthly average data of ERA5
 #'
 #' @description
-#' This script obtains monthly maximum data of ERA5
+#' This script obtains monthly average data of ERA5
 #'
 #' @author Fernando Prudencio
 #'
@@ -41,7 +41,7 @@ date <- tibble(
 ) %>%
   mutate(id = 1:length(date))
 
-#' OBTAIN MONTHLY MAXIMUM DATA OF ERA5
+#' OBTAIN MONTHLY AVERAGE DATA OF ERA5
 for (i in k.years) { # loop by year
   for (j in sprintf("%.02d", 1:12)) { # loop by month
     n <- date %>%
@@ -49,10 +49,10 @@ for (i in k.years) { # loop by year
         str_sub(date, 1, 4) == i &
           str_sub(date, 6, 7) == j
       )
-    era <- stack(lst.temp[n$id]) %>% max(na.rm = T)
+    era <- stack(lst.temp[n$id]) %>% mean(na.rm = T)
     writeRaster(
       era,
-      sprintf("data/raster/era5/monthly/max/era5_tempMAX_%s-%s.tif", i, j)
+      sprintf("data/raster/era5/monthly/mean/era5_tempMEAN_%s-%s.tif", i, j)
     )
   }
 }
