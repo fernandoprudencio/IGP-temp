@@ -1,17 +1,14 @@
 #' @title
-#' Read ERA5 data of hourly temperature in NetCDF
+#' Monthly maximum data of ERA5
 #'
 #' @description
-#' This script read hourly temperature data in NetCDF and obtain it daily
-#'   temperature
+#' This script obtains monthly maximum data of ERA5
 #'
 #' @author Fernando Prudencio
 #'
 
-rm(list = ls())
-
 #' INSTALL PACKAGES
-pkg <- c("tidyverse", "raster", "ncdf4", "rgdal")
+pkg <- c("tidyverse", "raster", "Hmisc", "ncdf4")
 
 sapply(
   pkg,
@@ -26,61 +23,36 @@ sapply(
 #' LOAD PACKAGES
 library(tidyverse)
 library(raster)
+library(Hmisc)
 library(ncdf4)
-library(rgdal)
 
 #' CONSTANTS
-k.coord <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0")
+k.years <- 1981:2020
 
-#' READ METADATA, LONGITUDE AND LATITUDE OF NETCDF FILE
-data <- nc_open("data/raster/era5/hourly/era5_2011-2020.nc")
-lon <- ncvar_get(data, "longitude")
-lat <- ncvar_get(data, "latitude")
+#' READ LIST OF DAILY MAXIMUM DATA (ERA5)
+lst.temp <- list.files(
+  "data/raster/era5/daily/",
+  pattern = "*.tif", full.names = T
+)
 
-#' SECUENCIA DE DATA HORARIA
-ts <- seq(24, 81793, 24)
+#' BUILD A DATE DATAFRAME
+date <- tibble(
+  date = seq(as.Date("1981-01-01"), as.Date("2020-04-30"), by = "1 day")
+) %>%
+  mutate(id = 1:length(date))
 
-#' SECUENCIA DE DATA DIARIA
-date <- seq(as.Date("2011-01-01"), as.Date("2020-04-30"), by = "1 day")
-
-for (i in 1:length(ts)) {
-  if (i == 1) {
-    array <- ncvar_get(
-      data, "t2m",
-      start = c(1, 1, 1), count = c(151, 226, 24)
-    )
-  } else {
-    array <- ncvar_get(
-      data, "t2m",
-      start = c(1, 1, ts[i-1] + 1), count = c(151, 226, 24)
+#' OBTAIN MONTHLY MAXIMUM DATA OF ERA5
+for (i in k.years) { # loop by year
+  for (j in sprintf("%.02d", 1:12)) { # loop by month
+    n <- date %>%
+      filter(
+        str_sub(date, 1, 4) == i &
+          str_sub(date, 6, 7) == j
+      )
+    era <- stack(lst.temp[n$id]) %>% max(na.rm = T)
+    writeRaster(
+      era,
+      sprintf("data/raster/era5/monthly/max/era5_tempMAX_%s-%s.tif", i, j)
     )
   }
-
-  img <- brick(
-    array,
-    xmn = min(lat), xmx = max(lat),
-    ymn = min(lon), ymx = max(lon), crs = k.coord
-  ) %>%
-    t() %>%
-    max(na.rm = T)
-
-  img <- img - 273.15
-
-  writeRaster(
-    img, sprintf("data/raster/era5/daily/tif/era5_tempMAX_%s.tif", date[i]),
-    overwrite = T
-  )
 }
-
-#' STACK DAILY DATA IN A NETCDF FILE
-#'   It's not possible for the moment
-era5 <- list.files(
-  "data/raster/era5/daily/tif",
-  pattern = "*.tif", full.names = T
-) %>% stack()
-
-writeRaster(
-  era5,
-  "data/raster/era5/daily/netcdf/era5_tempMAX_1981-01-01_to_2020-04-30_v1.nc",
-  overwrite = T
-)
