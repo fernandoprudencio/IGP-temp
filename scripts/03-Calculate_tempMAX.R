@@ -1,8 +1,8 @@
 #' @title
-#' Monthly maximum data of PISCO
+#' Monthly average data of PISCO
 #'
 #' @description
-#' This script obtains monthly maximum data of PISCO
+#' This script obtains monthly average data of PISCO
 #'
 #' @author Fernando Prudencio
 #'
@@ -38,7 +38,7 @@ date <- tibble(
 ) %>%
   mutate(id = 1:length(date))
 
-#' OBTAIN MONTHLY MAXIMUM DATA OF PISCO
+#' OBTAIN MONTHLY AVERAGE DATA OF PISCO
 for (i in k.years) { # loop by year
   for (j in sprintf("%.02d", 1:12)) { # loop by month
     n <- date %>%
@@ -46,10 +46,10 @@ for (i in k.years) { # loop by year
         str_sub(date, 1, 4) == i &
           str_sub(date, 6, 7) == j
       )
-    era <- grd.temp[[n$id]] %>% max(na.rm = T)
+    era <- grd.temp[[n$id]] %>% mean(na.rm = T)
     writeRaster(
       era,
-      sprintf("data/raster/pisco/monthly/max/pisco_tempMAX_%s-%s.tif", i, j)
+      sprintf("data/raster/pisco/monthly/mean/pisco_tempMEAN_%s-%s.tif", i, j)
     )
   }
 }
