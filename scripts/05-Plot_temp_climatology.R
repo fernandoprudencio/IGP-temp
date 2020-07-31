@@ -67,7 +67,9 @@ input <- sprintf(
 )
 
 grd.avr <- brick(input)[[k.months]] %>%
-  mean(na.rm = T) %>% crop(ref) %>% resample(ref)
+  mean(na.rm = T) %>%
+  crop(ref) %>%
+  resample(ref)
 
 #' LOAD VECTOR DATA TO PLOT WHIT RASTER OF TEMPERATURE
 #'   load world countries limits
@@ -148,9 +150,13 @@ levelplot(grd.avr,
 ) +
   latticeExtra::layer(
     sp.lines(sp.world, col = "black", lwd = 2),
-    #sp.lines(sp.dep, col = "black", lwd = .8),
+    # sp.lines(sp.dep, col = "black", lwd = .8),
     sp.points(sp.peru, pch = 20, cex = 1, col = "black"),
-    sp.text(coordinates(sp.peru), txt = sf.peru$Departamen, pos = 1, cex = 1.2)
+    sp.text(
+      coordinates(sp.peru),
+      txt = sf.peru$Departamen, pos = 1, cex = 1.2,
+      fontfamily = "Source Sans Pro"
+    )
   )
 
 grid::grid.text(
