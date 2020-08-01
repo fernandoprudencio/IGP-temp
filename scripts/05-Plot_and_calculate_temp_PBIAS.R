@@ -45,23 +45,24 @@ k.dep <- c(
   "Amazonas", "Madre de Dios", "Cusco", "Apurimac", "Puno", "Huanuco", "Pasco",
   "Junin"
 )
-k.cond <- "normal" # dry or normal conditions
+k.cond <- "dry" # dry or normal conditions
+k.month <- 7:11
 
 #' READ RASTER DATA
-pisco <- raster(
+pisco <- brick(
   sprintf(
     "data/raster/pisco/climatology/pisco_mnthlyMEANtemp_clim%s_1981-2016.nc",
     str_sub(k.cond, 1, 4) %>% toupper()
   )
-) %>%
+)[[k.month]] %>%
   mean(na.rm = T)
 
-era <- raster(
+era <- brick(
   sprintf(
     "data/raster/era5/climatology/era5_mnthlyMEANtemp_clim%s_1981-2019.nc",
     str_sub(k.cond, 1, 4) %>% toupper()
   )
-) %>%
+)[[k.month]] %>%
   mean(na.rm = T) %>%
   crop(pisco) %>%
   resample(pisco)
