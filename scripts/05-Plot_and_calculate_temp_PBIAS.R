@@ -45,7 +45,7 @@ k.dep <- c(
   "Amazonas", "Madre de Dios", "Cusco", "Apurimac", "Puno", "Huanuco", "Pasco",
   "Junin"
 )
-k.cond <- "dry" # dry or normal conditions
+k.cond <- "normal" # dry or normal conditions
 k.month <- 7:11
 
 #' READ RASTER DATA
@@ -118,7 +118,20 @@ sf.dep <- st_read(
 #'     load sp data
 sp.dep <- as(st_geometry(sf.dep), Class = "Spatial")
 
+#' NAME OF PLOT
+if (k.cond == "dry") {
+  title <- sprintf(
+    "PBIAS between ERA5 and PISCOv1.1\ntemperature data (jul - nov) in %s conditions years\n(2005, 2010 and 2016)",
+    k.cond
+  )
+}
 
+if (k.cond == "normal") {
+  title <- sprintf(
+    "PBIAS between ERA5 and PISCOv1.1\ntemperature data (jul - nov) in %s conditions years\nfrom 1981 to 2016",
+    k.cond
+  )
+}
 
 #' SAVE PLOT
 png(
@@ -132,10 +145,7 @@ png(
 levelplot(pbias,
   # col.regions = rev(cb_palette),
   main = list(
-    sprintf(
-      "PBIAS between ERA5 and PISCOv1.1\ntemperature data in %s conditions\nfrom 1981 to 2016 (jul - nov)",
-      k.cond
-    ),
+    title,
     side = 1, line = 0.5, fontfamily = "Source Sans Pro"
   ),
   scales = list(
