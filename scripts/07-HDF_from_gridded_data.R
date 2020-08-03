@@ -258,7 +258,10 @@ if (length(k.prd) > length(lst.data)) {
   plt.hdf
   ggsave(
     plot = plt.hdf,
-    sprintf("exports/%s_hdf_from_%s_to_%s.png", k.data, k.date.str, k.date.end),
+    sprintf(
+      "exports/%s_clus%s_hdf_from_%s_to_%s.png",
+      k.data, k.regions, k.date.str, k.date.end
+    ),
     width = 10, height = 12, units = "cm", dpi = 1000
   )
 }
