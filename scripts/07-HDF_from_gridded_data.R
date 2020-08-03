@@ -71,6 +71,9 @@ if (k.data == "pisco") {
   lst.opt <- as.integer(readline(prompt = "\nEnter raster file[1/2/3/...]: \n"))
   grd.data <- switch(lst.opt, lst[1], lst[2], lst[3], lst[4], lst[5]) %>%
     brick()
+  crs(grd.data) <-
+    "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+  
   lst.lng <- grd.data %>% nlayers()
 }
 
@@ -131,7 +134,7 @@ if (length(k.prd) > lst.lng) {
       )
     }
   } else {
-    for (i in 1:length(lst.data)) {
+    for (i in 1:lst.lng) {
       print(i)
       if (k.data == "era5") {
         vls.day <- raster::extract(raster(lst.data[i]), sf.region) %>%
