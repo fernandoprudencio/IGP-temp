@@ -36,12 +36,6 @@ Sys.setlocale(category = "LC_ALL", locale = "english")
 #' LOAD FUNCTIONS
 source("scripts/functions.R")
 
-#' READ LIST OF DATA
-lst.data <- list.files(
-  "data/raster/era5/daily/",
-  pattern = "*.tif", full.names = T
-)
-
 #' LOAD CONSTANTS
 cat("1. era5\n")
 cat("2. pisco\n")
@@ -57,9 +51,34 @@ k.dry.yr <- c(2005, 2010, 2016) # dry years
 k.date.prd <- seq(as.Date(k.date.str), as.Date(k.date.end), by = "1 day")
 k.prd <- seq(as.Date("1981-01-01"), as.Date(k.date.end), by = "1 day")
 
+#' READ LIST OF DATA
+if (k.data == "era5") {
+  lst.data <- list.files(
+    sprintf("data/raster/%s/daily/", k.data),
+    pattern = "*.tif", full.names = T
+  )
+  lst.lng <- length(lst.data)
+}
 
-if (length(k.prd) > length(lst.data)) {
-  cat("Error: faltan datos para actualizar a la fecha ingresada")
+if (k.data == "pisco") {
+  lst <- list.files(
+    sprintf("data/raster/%s/daily/", k.data),
+    pattern = "*.nc", full.names = T
+  )
+  for (i in 1:length(lst)) {
+    cat(sprintf("\n%s. %s", i, lst[i] %>% as.character()))
+  }
+  lst.opt <- as.integer(readline(prompt = "\nEnter raster file[1/2/3/...]: \n"))
+  grd.data <- switch(lst.opt, lst[1], lst[2], lst[3], lst[4], lst[5]) %>%
+    brick()
+  crs(grd.data) <-
+    "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+  
+  lst.lng <- grd.data %>% nlayers()
+}
+
+if (length(k.prd) > lst.lng) {
+  cat("\nError: faltan datos para actualizar a la fecha ingresada\n")
 } else {
   #' READ VECTORIAL DATA
   #'   load cluster region
@@ -90,12 +109,22 @@ if (length(k.prd) > length(lst.data)) {
       strt <- length(vls.stk) + 1
       end <- length(k.date.prd)
       for (i in strt:end) {
-        vls.day <- raster::extract(raster(lst.data[i]), sf.region) %>%
-          lapply(
-            function(x) if (!is.null(x)) mean(x, na.rm = TRUE) else NA
-          ) %>%
-          unlist()
-
+        if (k.data == "era5") {
+          vls.day <- raster::extract(raster(lst.data[i]), sf.region) %>%
+            lapply(
+              function(x) if (!is.null(x)) mean(x, na.rm = TRUE) else NA
+            ) %>%
+            unlist()
+        }
+        
+        if (k.data == "pisco") {
+          vls.day <- raster::extract(grd.data[[i]], sf.region) %>%
+            lapply(
+              function(x) if (!is.null(x)) mean(x, na.rm = TRUE) else NA
+            ) %>%
+            unlist()
+        }
+        
         if (i == strt) vls.mn <- vls.day else vls.mn <- c(vls.mn, vls.day)
       }
       vls.stk <- c(vls.stk, vls.mn)
@@ -105,13 +134,23 @@ if (length(k.prd) > length(lst.data)) {
       )
     }
   } else {
-    for (i in 1:length(lst.data)) {
+    for (i in 1:lst.lng) {
       print(i)
-      vls.day <- raster::extract(raster(lst.data[i]), sf.region) %>%
-        lapply(
-          function(x) if (!is.null(x)) mean(x, na.rm = TRUE) else NA
-        ) %>%
-        unlist()
+      if (k.data == "era5") {
+        vls.day <- raster::extract(raster(lst.data[i]), sf.region) %>%
+          lapply(
+            function(x) if (!is.null(x)) mean(x, na.rm = TRUE) else NA
+          ) %>%
+          unlist()
+      }
+      
+      if (k.data == "pisco") {
+        vls.day <- raster::extract(grd.data[[i]], sf.region) %>%
+          lapply(
+            function(x) if (!is.null(x)) mean(x, na.rm = TRUE) else NA
+          ) %>%
+          unlist()
+      }
 
       if (i == 1) vls.stk <- vls.day else vls.stk <- c(vls.stk, vls.day)
     }
@@ -215,8 +254,8 @@ if (length(k.prd) > length(lst.data)) {
       date_labels = "%b", expand = expand_scale(mult = c(.02, 0))
     ) +
     scale_y_continuous(
-      breaks = seq(0, 140, 20),
-      limits = c(-.003, 140),
+      breaks = seq(0, 150, 20),
+      limits = c(-.003, 150),
       expand = expand_scale(mult = c(0, 0))
     ) +
     annotation_ticks(
